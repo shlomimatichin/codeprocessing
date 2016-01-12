@@ -68,6 +68,8 @@ public:
             Expected({Token({Type::IDENTIFIER, 0, "7"}), 4}),
             Expected({Token({Type::SPECIAL, 0, ")"}), 4}),
             Expected({Token({Type::SPECIAL, 0, ";"}), 4}),
+            Expected({Token({Type::C_COMMENT, 0, "//comment 1\n"}), 5}),
+            Expected({Token({Type::C_COMMENT, 0, "/* comment 2 */"}), 6}),
             Expected({Token({Type::SPECIAL, 0, "}"}), 7}),
             Expected({Token({Type::SPECIAL, 0, "}"}), 7}),
             Expected({Token({Type::SPECIAL, 0, ";"}), 7}),

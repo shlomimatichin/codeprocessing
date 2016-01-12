@@ -39,6 +39,8 @@ public:
         IDENTIFIER,
         SINGLE_QUOTE,
         DOUBLE_QUOTE,
+        C_COMMENT,
+        DIRECTIVE,
     };
 
     struct Token
@@ -68,11 +70,11 @@ public:
             else if (c == '"')
                 return Token({Type::DOUBLE_QUOTE, beginsOffset, eatQuotes()});
             else if (c == '/' and next == '/')
-                skipAfter("\n");
+                return Token({Type::C_COMMENT, beginsOffset, eatUntilAfter("\n")});
             else if (c == '/' and next == '*')
-                skipAfter("*/");
+                return Token({Type::C_COMMENT, beginsOffset, eatUntilAfter("*/")});
             else if (c == '#')
-                skipAfter("\n");
+                return Token({Type::DIRECTIVE, beginsOffset, eatUntilAfter("\n")});
             else if (c == '<' and next == '<') {
                 _index += 2;
                 return Token({Type::SPECIAL, beginsOffset, "<<"});
@@ -113,20 +115,16 @@ private:
         return c == ' ' or c == '\n' or c == '\t';
     }
 
-    void skipUntil(std::string lookFor)
+    std::string eatUntilAfter(std::string lookFor)
     {
+        unsigned before = _index;
         size_t pos = _data.find(lookFor, _index);
-        if (pos == std::string::npos)
+        if (pos == std::string::npos) {
             _index = _data.size();
-        _index = pos;
-    }
-
-    void skipAfter(std::string lookFor)
-    {
-        skipUntil(lookFor);
-        if (_index >= _data.size())
-            return;
-        _index += lookFor.size();
+            return "";
+        }
+        _index = pos + lookFor.size();
+        return _data.substr(before, _index - before);
     }
 
     std::string eatQuotes()
