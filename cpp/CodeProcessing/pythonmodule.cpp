@@ -27,7 +27,10 @@ codeprocessingnative_tokenizer(PyObject *self, PyObject *args)
         return nullptr;
     unsigned i = 0;
     for (auto & token: result) {
-        PyObject * one = Py_BuildValue("(s#ii)", token.spelling.c_str(), token.spelling.size(), token.beginsOffset,
+        PyObject * one = Py_BuildValue("(s#iii)",
+                token.spelling.c_str(), token.spelling.size(),
+                static_cast<unsigned>(token.type),
+                token.beginsOffset,
                 tokenizer.offsetToLine(token.beginsOffset));
         if (one == nullptr) {
             Py_DECREF(returned);

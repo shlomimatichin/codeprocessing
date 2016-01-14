@@ -1,4 +1,7 @@
-all: unittest build/codeprocessingnative.so
+all: unittest build pyunittest
+
+.PHONY: build
+build: build/codeprocessingnative.so
 
 build/codeprocessingnative.so: cpp/CodeProcessing/pythonmodule.cpp
 	-mkdir $(@D)
@@ -20,3 +23,5 @@ unittest:
 	$(MAKE) -f $(VOODOO_ROOT_DIR)/make/1_generate.Makefile
 	$(MAKE) -f $(VOODOO_ROOT_DIR)/make/2_build.Makefile
 	$(MAKE) -f $(VOODOO_ROOT_DIR)/make/3_run.Makefile
+
+include ../pycommon/include.Makefile
