@@ -24,4 +24,7 @@ unittest:
 	$(MAKE) -f $(VOODOO_ROOT_DIR)/make/2_build.Makefile
 	$(MAKE) -f $(VOODOO_ROOT_DIR)/make/3_run.Makefile
 
-include ../pycommon/include.Makefile
+PYTHON_UNITTESTS=$(shell find py -name 'test_*.py' | sort)
+.PHONY: pyunittest
+pyunittest:
+	for testfile in $(PYTHON_UNITTESTS); do PYTHONPATH=py:build python $$testfile || exit 4; done
