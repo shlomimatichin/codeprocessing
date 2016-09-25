@@ -37,27 +37,6 @@ class Test(unittest.TestCase):
         tested = codeprocessingtokens.Tokens.fromContents("""a b c d e f a b c d z z a b c""")
         for i, result in enumerate(tested.findAllSpellings(["a", "b", "c"])):
             if i == 0:
-                self.assertEquals(len(result), 3)
-                self.assertTrue(result[0] is tested[0])
-                self.assertTrue(result[1] is tested[2])
-                self.assertTrue(result[2] is tested[4])
-            elif i == 1:
-                self.assertEquals(len(result), 3)
-                self.assertTrue(result[0] is tested[12])
-                self.assertTrue(result[1] is tested[14])
-                self.assertTrue(result[2] is tested[16])
-            elif i == 2:
-                self.assertEquals(len(result), 3)
-                self.assertTrue(result[0] is tested[24])
-                self.assertTrue(result[1] is tested[26])
-                self.assertTrue(result[2] is tested[28])
-            else:
-                self.assertTrue(False)
-
-    def test_FindAllSpellingsWithWhitespaces(self):
-        tested = codeprocessingtokens.Tokens.fromContents("""a b c d e f a b c d z z a b c""")
-        for i, result in enumerate(tested.findAllSpellings(["a", "b", "c"], returnWhitespaces=True)):
-            if i == 0:
                 self.assertEquals(len(result), 5)
                 self.assertTrue(result[0] is tested[0])
                 self.assertTrue(result[2] is tested[2])

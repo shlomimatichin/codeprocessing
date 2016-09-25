@@ -48,29 +48,27 @@ class Tokens(list):
                 yield self[index]
             index += 1
 
-    def findAllSpellings(self, spellings, returnWhitespaces=False):
+    def findAllSpellings(self, spellings):
         for token in self.findAllSpelling(spellings[0]):
             index = token.index
             result = self.matchIgnoreWhitespaces(index, spellings)
             if result is not None:
-                if returnWhitespaces:
-                    yield result
-                else:
-                    yield [t for t in result if t.kind != KIND_WHITESPACE]
+                yield result
 
     def matchIgnoreWhitespaces(self, startIndex, spellings):
-        assert self[startIndex].spelling == spellings[0]
-        notFound = spellings[1:]
+        notFound = list(spellings)
         last = startIndex
-        while len(notFound) > 0:
-            last += 1
+        while last < len(self) and len(notFound) > 0:
             candidate = self[last]
             if candidate.kind != KIND_WHITESPACE:
                 if candidate.spelling == notFound[0]:
                     notFound.pop(0)
                 else:
                     return None
-        return self[startIndex: last + 1]
+            last += 1
+        if len(notFound) > 0:
+            return None
+        return self.subList(startIndex, last)
 
     def firstTokenOnLine(self, number):
         for token in self:

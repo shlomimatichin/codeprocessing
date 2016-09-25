@@ -25,20 +25,18 @@ def findMacro(macrospellings, tokens, semicolon=False):
         macrospellings = [macrospellings]
     macroname = "".join(macrospellings)
     for match in tokens.findAllSpellings(macrospellings + ["("]):
-        closingParen = tokens.closingParen(match[1])
+        closingParen = tokens.closingParen(match[-1])
         result = dict(
             name=macroname,
+            line=match[0].line,
+            filename=tokens.filename if hasattr(tokens, "filename") else "NA",
             firstToken=match[0],
-            openingParen=match[1],
+            openingParen=match[-1],
             closingParen=closingParen,
-            insideParen=tokens.subList(match[1].index + 1, closingParen.index))
+            insideParen=tokens.subList(match[-1].index + 1, closingParen.index))
         if semicolon:
-            if closingParen.index + 1 < len(tokens) and tokens[closingParen.index + 1].spelling == ';':
-                result['semicolon'] = tokens[closingParen.index + 1]
-            elif closingParen.index + 2 < len(tokens) and \
-                    tokens[closingParen.index + 1].kind == codeprocessingtokens.KIND_WHITESPACE and \
-                    tokens[closingParen.index + 2].spelling == ";":
-                result['semicolon'] = tokens[closingParen.index + 2]
-            else:
+            match = tokens.matchIgnoreWhitespaces(closingParen.index + 1, ";")
+            if match is None:
                 raise Exception("Missing semicolon after macro invocation", result)
+            result['semicolon'] = match[-1]
         yield result
