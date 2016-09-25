@@ -79,6 +79,9 @@ public:
             else if (c == '<' and next == '<') {
                 _index += 2;
                 return Token({Type::SPECIAL, beginsOffset, "<<"});
+            } else if (c == ':' and next == ':') {
+                _index += 2;
+                return Token({Type::SPECIAL, beginsOffset, "::"});
             } else if (whitespace(c))
                 return Token({Type::WHITESPACE, beginsOffset, eatWhitespace()});
             else {
