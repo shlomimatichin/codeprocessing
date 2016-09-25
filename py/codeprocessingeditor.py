@@ -4,9 +4,17 @@ import codeprocessingtokens
 class Editor:
     def __init__(self, filename):
         self._filename = filename
+        self.tokens = codeprocessingtokens.Token.fromFile(filename)
+        self._changed = False
 
     def filename(self):
         return self._filename
+
+    def saveIfChanged(self):
+        if not self._changed:
+            return
+        self._changed = False
+        self.tokens.saveToFile(self._filename)
 
     def insert(self, location, what):
         self.replace(location, location, what)
@@ -32,20 +40,3 @@ class Editor:
             tokens = [tokens]
         self.replace(tokens[0].offset, tokens[-1].offset + len(tokens[-1].spelling), what,
                      assumeReplaced=tokens)
-
-    def _firstTokenOnLine(self, tokens, line):
-        for index in xrange(len(tokens)):
-            if tokens[index][2] == line:
-                return index
-        raise Exception("No tokens at line %d" % line)
-
-    def _findTokenInsideTrace(self, tokens, trace):
-        line = trace['line']
-        for index in xrange(self._firstTokenOnLine(tokens, line), len(tokens)):
-            token = tokens[index]
-            if token[2] > line:
-                raise Exception("%s not found on line %d" % (trace['level'], trace['line']))
-            if token[0] == trace['level']:
-                assert tokens[index + 1][0] == "("
-                return index + 2
-        assert False

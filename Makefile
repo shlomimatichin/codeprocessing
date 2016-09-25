@@ -5,7 +5,7 @@ build: build/codeprocessingnative.so
 
 build/codeprocessingnative.so: cpp/CodeProcessing/pythonmodule.cpp
 	-mkdir $(@D)
-	g++ -shared $< -o $@ -Wall -Werror -fPIC -Icpp -I/usr/include/python2.7/ -L/usr/lib/python2.7/ -I/System/Library/Frameworks/Python.framework/Versions/2.7/include/python2.7 -L/System/Library/Frameworks/Python.framework/Versions/2.7/lib/ -lpython -std=gnu++11 -MMD -MF $@.deps
+	g++ -shared $< -o $@ -Wall -Werror -fPIC -Icpp -I/usr/include/python2.7/ -L/usr/lib/x86_64-linux-gnu -I/System/Library/Frameworks/Python.framework/Versions/2.7/include/python2.7 -L/System/Library/Frameworks/Python.framework/Versions/2.7/lib/ -lpython2.7 -std=gnu++11 -MMD -MF $@.deps
 -include build/codeprocessingnative.so.deps
 
 clean:

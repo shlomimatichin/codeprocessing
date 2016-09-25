@@ -41,6 +41,7 @@ public:
         DOUBLE_QUOTE,
         C_COMMENT,
         DIRECTIVE,
+        WHITESPACE,
     };
 
     struct Token
@@ -70,16 +71,16 @@ public:
             else if (c == '"')
                 return Token({Type::DOUBLE_QUOTE, beginsOffset, eatQuotes()});
             else if (c == '/' and next == '/')
-                return Token({Type::C_COMMENT, beginsOffset, eatUntilAfter("\n")});
+                return Token({Type::C_COMMENT, beginsOffset, eatUntil("\n", true)});
             else if (c == '/' and next == '*')
                 return Token({Type::C_COMMENT, beginsOffset, eatUntilAfter("*/")});
             else if (c == '#')
-                return Token({Type::DIRECTIVE, beginsOffset, eatUntilAfter("\n")});
+                return Token({Type::DIRECTIVE, beginsOffset, eatUntil("\n", true)});
             else if (c == '<' and next == '<') {
                 _index += 2;
                 return Token({Type::SPECIAL, beginsOffset, "<<"});
             } else if (whitespace(c))
-                ++ _index;
+                return Token({Type::WHITESPACE, beginsOffset, eatWhitespace()});
             else {
                 ++ _index;
                 return Token({Type::SPECIAL, beginsOffset, _data.substr(beginsOffset, 1)});
@@ -115,6 +116,14 @@ private:
         return c == ' ' or c == '\n' or c == '\t';
     }
 
+    std::string eatWhitespace()
+    {
+        unsigned before = _index;
+        while (_index < _data.size() and whitespace(_data[_index]))
+            ++ _index;
+        return _data.substr(before, _index - before);
+    }
+
     std::string eatUntilAfter(std::string lookFor)
     {
         unsigned before = _index;
@@ -124,6 +133,22 @@ private:
             return "";
         }
         _index = pos + lookFor.size();
+        return _data.substr(before, _index - before);
+    }
+
+    std::string eatUntil(std::string lookFor, bool backslashEscape)
+    {
+        unsigned before = _index;
+        unsigned nextSearch = before;
+        do {
+            size_t pos = _data.find(lookFor, nextSearch);
+            if (pos == std::string::npos)
+                _index = _data.size();
+            else {
+                _index = pos;
+                nextSearch = _index + 1;
+            }
+        } while (backslashEscape and _index < _data.size() and _index > before and _data[_index - 1] == '\\');
         return _data.substr(before, _index - before);
     }
 

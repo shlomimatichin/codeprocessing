@@ -1,5 +1,6 @@
 import argparse
 import codeprocessingtokens
+import codeprocessingtools
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--functionName", nargs="+", default=["NSLog"])
@@ -13,18 +14,10 @@ for filename in args.filename:
         content = f.read()
     tokens = codeprocessingtokens.Tokens.fromFile(filename)
     for functionName in args.functionName:
-        for token in tokens:
-            if token.spelling == functionName:
-                assert tokens[token.index + 1].spelling == "("
-                closingParen = tokens.closingParen(tokens[token.index + 1])
-                semicolon = tokens[closingParen.index + 1]
-                assert semicolon.spelling == ';'
-                size = semicolon.offset + 1 - token.offset
-                assert size >= len(args.replaceWith)
-                replace = args.replaceWith + " " * (size - len(args.replaceWith))
-                content = content[:token.offset] + replace + content[semicolon.offset + 1:]
+        for macro in codeprocessingtools.findMacro(functionName, tokens, semicolon=True):
+            tokens.replaceBetweenTokens(macro['firstToken'], macro['semicolon'], args.replaceWith)
     if args.replaceInline:
         with open(filename, "w") as f:
-            f.write(content)
+            f.write(tokens.joinSpellings())
     else:
-        print content
+        print tokens.joinSpellings()

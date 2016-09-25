@@ -34,7 +34,25 @@ int main()
 int main()
 {
     printf("Hello world!");
-    do{}while(0);                                                 
+    do{}while(0);
+}""")
+
+    def test_TwoReplaces(self):
+        output = self.doOne("""
+int main()
+{
+    printf("Hello world!");
+    NSLog("This should be replaced, ", blah, [call me], call(me));
+    i += 1;
+    NSLog("Remove me!");
+}""")
+        self.assertEquals(output,"""
+int main()
+{
+    printf("Hello world!");
+    do{}while(0);
+    i += 1;
+    do{}while(0);
 }""")
 
 

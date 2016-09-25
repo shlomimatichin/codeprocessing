@@ -43,24 +43,34 @@ public:
             "class Name {\n"
             " public:\n"
             " void it(int b) {\n"
-            "  TRACE_INFO(\"Hello \" << 7);\n"
+            "  TRACE_INFO(\"Hello \"<<7);\n"
             "  //comment 1\n"
             " /* comment 2 */\n"
+            "#define Bu To\\\n"
+            "Ba\n"
             "}};");
         Tokenizer tested(original);
         std::vector<Expected> expected = {
             Expected({Token({Type::IDENTIFIER, 0, "class"}), 1}),
+            Expected({Token({Type::WHITESPACE, 0, " "}), 1}),
             Expected({Token({Type::IDENTIFIER, 0, "Name"}), 1}),
+            Expected({Token({Type::WHITESPACE, 0, " "}), 1}),
             Expected({Token({Type::SPECIAL, 0, "{"}), 1}),
+            Expected({Token({Type::WHITESPACE, 0, "\n "}), 1}),
             Expected({Token({Type::IDENTIFIER, 0, "public"}), 2}),
             Expected({Token({Type::SPECIAL, 0, ":"}), 2}),
+            Expected({Token({Type::WHITESPACE, 0, "\n "}), 2}),
             Expected({Token({Type::IDENTIFIER, 0, "void"}), 3}),
+            Expected({Token({Type::WHITESPACE, 0, " "}), 3}),
             Expected({Token({Type::IDENTIFIER, 0, "it"}), 3}),
             Expected({Token({Type::SPECIAL, 0, "("}), 3}),
             Expected({Token({Type::IDENTIFIER, 0, "int"}), 3}),
+            Expected({Token({Type::WHITESPACE, 0, " "}), 3}),
             Expected({Token({Type::IDENTIFIER, 0, "b"}), 3}),
             Expected({Token({Type::SPECIAL, 0, ")"}), 3}),
+            Expected({Token({Type::WHITESPACE, 0, " "}), 3}),
             Expected({Token({Type::SPECIAL, 0, "{"}), 3}),
+            Expected({Token({Type::WHITESPACE, 0, "\n  "}), 3}),
             Expected({Token({Type::IDENTIFIER, 0, "TRACE_INFO"}), 4}),
             Expected({Token({Type::SPECIAL, 0, "("}), 4}),
             Expected({Token({Type::DOUBLE_QUOTE, 0, "\"Hello \""}), 4}),
@@ -68,11 +78,16 @@ public:
             Expected({Token({Type::IDENTIFIER, 0, "7"}), 4}),
             Expected({Token({Type::SPECIAL, 0, ")"}), 4}),
             Expected({Token({Type::SPECIAL, 0, ";"}), 4}),
-            Expected({Token({Type::C_COMMENT, 0, "//comment 1\n"}), 5}),
+            Expected({Token({Type::WHITESPACE, 0, "\n  "}), 4}),
+            Expected({Token({Type::C_COMMENT, 0, "//comment 1"}), 5}),
+            Expected({Token({Type::WHITESPACE, 0, "\n "}), 5}),
             Expected({Token({Type::C_COMMENT, 0, "/* comment 2 */"}), 6}),
-            Expected({Token({Type::SPECIAL, 0, "}"}), 7}),
-            Expected({Token({Type::SPECIAL, 0, "}"}), 7}),
-            Expected({Token({Type::SPECIAL, 0, ";"}), 7}),
+            Expected({Token({Type::WHITESPACE, 0, "\n"}), 6}),
+            Expected({Token({Type::DIRECTIVE, 0, "#define Bu To\\\nBa"}), 7}),
+            Expected({Token({Type::WHITESPACE, 0, "\n"}), 8}),
+            Expected({Token({Type::SPECIAL, 0, "}"}), 9}),
+            Expected({Token({Type::SPECIAL, 0, "}"}), 9}),
+            Expected({Token({Type::SPECIAL, 0, ";"}), 9}),
         };
         verify(tested, original, expected);
     }

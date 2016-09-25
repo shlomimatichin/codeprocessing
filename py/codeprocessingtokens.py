@@ -7,9 +7,11 @@ KIND_SINGLE_QUOTE = 2
 KIND_DOUBLE_QUOTE = 3
 KIND_C_COMMENT = 4
 KIND_DIRECTIVE = 5
+KIND_WHITESPACE = 6
 _KNOWN_KINDS = set([
     KIND_SPECIAL, KIND_IDENTIFIER, KIND_SINGLE_QUOTE,
     KIND_DOUBLE_QUOTE, KIND_C_COMMENT, KIND_DIRECTIVE,
+    KIND_WHITESPACE,
 ])
 _OPENS = {"{": "}", "(": ")", "[": "]"}
 _CLOSES = {y: x for x, y in _OPENS.iteritems()}
@@ -39,19 +41,36 @@ class Tokens(list):
         return cls(cls._convertNativeTokens(tokens))
 
     def findAllSpelling(self, spelling):
-        for token in self:
-            if token.spelling == spelling:
-                yield token
+        #for loop implemented as while to consider list edited inside loop
+        index = 0
+        while index < len(self):
+            if self[index].spelling == spelling:
+                yield self[index]
+            index += 1
 
-    def findAllSpellings(self, *spellings):
-        for index in xrange(len(self)):
-            found = True
-            for j in xrange(len(spellings)):
-                if self[index + j].spelling != spellings[j]:
-                    found = False
-                    break
-            if found:
-                yield self[index: index + len(spellings)]
+    def findAllSpellings(self, spellings, returnWhitespaces=False):
+        for token in self.findAllSpelling(spellings[0]):
+            index = token.index
+            result = self.matchIgnoreWhitespaces(index, spellings)
+            if result is not None:
+                if returnWhitespaces:
+                    yield result
+                else:
+                    yield [t for t in result if t.kind != KIND_WHITESPACE]
+
+    def matchIgnoreWhitespaces(self, startIndex, spellings):
+        assert self[startIndex].spelling == spellings[0]
+        notFound = spellings[1:]
+        last = startIndex
+        while len(notFound) > 0:
+            last += 1
+            candidate = self[last]
+            if candidate.kind != KIND_WHITESPACE:
+                if candidate.spelling == notFound[0]:
+                    notFound.pop(0)
+                else:
+                    return None
+        return self[startIndex: last + 1]
 
     def firstTokenOnLine(self, number):
         for token in self:
@@ -94,8 +113,12 @@ class Tokens(list):
             result.filename = self.filename
         return result
 
-    def joinSpellings(self, seperator=" "):
+    def joinSpellings(self, seperator=""):
         return seperator.join([t.spelling for t in self])
+
+    def saveToFile(self, filename):
+        with open(filename, "w") as f:
+            f.write(self.joinSpellings())
 
     def split(self, seperator=","):
         if len(self) == 0:
@@ -107,6 +130,61 @@ class Tokens(list):
             else:
                 parts[-1].append(token)
         return [self.subList(p[0], p[-1]) for p in parts]
+
+    def insertBeforeToken(self, token, what):
+        if isinstance(token, int):
+            assert token < len(self)
+            token = self[token]
+        assert self[token.index] is token
+        what = self._toTokens(what, followingToken=token,
+                              preceedingToken=self[token.index - 1] if token.index > 0 else None)
+        for t in reversed(what):
+            self.insert(token.index, t)
+        self._fix(token.index)
+
+    def replaceBetweenTokens(self, first, last, what):
+        if isinstance(first, int):
+            assert first < len(self)
+            first = self[first]
+        assert self[first.index] is first
+        if isinstance(last, int):
+            assert last < len(self)
+            last = self[last]
+        assert self[last.index] is last
+        assert first.index <= last.index
+        del self[first.index: last.index + 1]
+        self[first.index].index = first.index
+        self.insertBeforeToken(first.index, what)
+
+    def _toTokens(self, what, preceedingToken, followingToken):
+        if isinstance(what, str):
+            what = self.fromContents(what)
+        assert isinstance(what, list)
+        for i, t in enumerate(what):
+            assert isinstance(t, Token)
+        if preceedingToken is not None and preceedingToken.kind == KIND_IDENTIFIER and \
+                what[0].kind == KIND_IDENTIFIER:
+            what = [self._whitespace()] + what
+        if followingToken is not None and followingToken.kind == KIND_IDENTIFIER and \
+                what[-1].kind == KIND_IDENTIFIER:
+            what = what + [self._whitespace()]
+        return what
+
+    def _fix(self, startAt):
+        if startAt == 0:
+            line = 1
+            offset = 0
+        else:
+            lastToken = self[startAt - 1]
+            line = lastToken.line + lastToken.spelling.count('\n')
+            offset = lastToken.offset + len(lastToken.spelling)
+        for i in xrange(startAt, len(self)):
+            token = self[i]
+            token.line = line
+            token.offset = offset
+            token.index = i
+            line += token.spelling.count('\n')
+            offset += len(token.spelling)
 
     @classmethod
     def _convertNativeTokens(cls, tokens):
@@ -121,4 +199,14 @@ class Tokens(list):
         result.offset = token[2]
         result.line = token[3]
         result.index = index
+        return result
+
+    @classmethod
+    def _whitespace(cls, spelling=" "):
+        result = Token()
+        result.spelling = spelling
+        result.kind = KIND_WHITESPACE
+        result.offset = -1
+        result.line = 0
+        result.index = -1
         return result
