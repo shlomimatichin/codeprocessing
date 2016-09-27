@@ -8,11 +8,26 @@ codeprocessingnative_tokenizer(PyObject *self, PyObject *args)
 {
     const char *contentCString;
     int contentSize;
+    const char *hashModeCString;
+    int hashModeSize;
 
-    if (!PyArg_ParseTuple(args, "s#", &contentCString, &contentSize))
+    if (!PyArg_ParseTuple(args, "s#s#", &contentCString, &contentSize, &hashModeCString, &hashModeSize))
         return NULL;
     std::string content = std::string(contentCString, contentSize);
-    CodeProcessing::Tokenizer tokenizer(std::move(content));
+    std::string hashModeString = std::string(hashModeCString, hashModeSize);
+    enum CodeProcessing::Tokenizer::HashMode hashMode;
+    if (hashModeString == "directive")
+        hashMode = CodeProcessing::Tokenizer::HASH_IS_DIRECTIVE;
+    else if (hashModeString == "comment")
+        hashMode = CodeProcessing::Tokenizer::HASH_IS_COMMENT;
+    else if (hashModeString == "special")
+        hashMode = CodeProcessing::Tokenizer::HASH_IS_SPECIAL;
+    else {
+        PyErr_SetString(PyExc_ValueError, "hash mode must be one of 'directive', 'comment' or 'special'");
+        return nullptr;
+    }
+
+    CodeProcessing::Tokenizer tokenizer(std::move(content), hashMode);
     std::list<CodeProcessing::Tokenizer::Token> result;
     while (true)
         try {

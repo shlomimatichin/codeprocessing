@@ -12,8 +12,15 @@ namespace CodeProcessing
 class Tokenizer
 {
 public:
-    Tokenizer(std::string data) :
+    enum HashMode {
+        HASH_IS_DIRECTIVE,
+        HASH_IS_COMMENT,
+        HASH_IS_SPECIAL,
+    };
+
+    Tokenizer(std::string data, enum HashMode hashMode) :
         _data(std::move(data)),
+        _hashMode(hashMode),
         _index(0)
     {
         unsigned line = 1;
@@ -74,9 +81,17 @@ public:
                 return Token({Type::C_COMMENT, beginsOffset, eatUntil("\n", true)});
             else if (c == '/' and next == '*')
                 return Token({Type::C_COMMENT, beginsOffset, eatUntilAfter("*/")});
-            else if (c == '#')
-                return Token({Type::DIRECTIVE, beginsOffset, eatUntil("\n", true)});
-            else if (c == '<' and next == '<') {
+            else if (c == '#') {
+                switch (_hashMode) {
+                    case HASH_IS_DIRECTIVE:
+                        return Token({Type::DIRECTIVE, beginsOffset, eatUntil("\n", true)});
+                    case HASH_IS_COMMENT:
+                        return Token({Type::C_COMMENT, beginsOffset, eatUntil("\n", true)});
+                    case HASH_IS_SPECIAL:
+                        ++ _index;
+                        return Token({Type::SPECIAL, beginsOffset, _data.substr(beginsOffset, 1)});
+                }
+            } else if (c == '<' and next == '<') {
                 _index += 2;
                 return Token({Type::SPECIAL, beginsOffset, "<<"});
             } else if (c == ':' and next == ':') {
@@ -93,6 +108,7 @@ public:
 
 private:
     std::string                   _data;
+    enum HashMode                 _hashMode;
     unsigned                      _index;
     std::map<unsigned, unsigned>  _offsetToLine;
 

@@ -49,7 +49,7 @@ public:
             "#define Bu To\\\n"
             "Ba\n"
             "}};");
-        Tokenizer tested(original);
+        Tokenizer tested(original, Tokenizer::HASH_IS_DIRECTIVE);
         std::vector<Expected> expected = {
             Expected({Token({Type::IDENTIFIER, 0, "class"}), 1}),
             Expected({Token({Type::WHITESPACE, 0, " "}), 1}),

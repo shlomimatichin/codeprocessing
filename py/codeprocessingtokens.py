@@ -27,17 +27,18 @@ class Token:
 
 class Tokens(list):
     @classmethod
-    def fromFile(cls, filename):
+    def fromFile(cls, filename, hashMode="directive"):
         contents = open(filename).read()
-        result = cls.fromContents(contents)
+        result = cls.fromContents(contents, hashMode=hashMode)
         result.filename = filename
         for token in result:
             token.filename = filename
         return result
 
     @classmethod
-    def fromContents(cls, contents):
-        tokens = codeprocessingnative.tokenizer(contents)
+    def fromContents(cls, contents, hashMode="directive"):
+        assert hashMode in ['directive', 'comment', 'special']
+        tokens = codeprocessingnative.tokenizer(contents, hashMode)
         return cls(cls._convertNativeTokens(tokens))
 
     def findAllSpelling(self, spelling):
@@ -61,7 +62,9 @@ class Tokens(list):
         while last < len(self) and len(notFound) > 0:
             candidate = self[last]
             if candidate.kind != KIND_WHITESPACE:
-                if candidate.spelling == notFound[0]:
+                if notFound[0] is None:
+                    notFound.pop(0)
+                elif candidate.spelling == notFound[0]:
                     notFound.pop(0)
                 else:
                     return None

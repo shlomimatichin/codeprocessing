@@ -3,54 +3,92 @@ import argparse
 import logging
 from amatureguard import walk
 import codeprocessingtokens
+import codeprocessingtools
+from amatureguard import replacableidentifiers
+from amatureguard import datafile
+from amatureguard import meaninglessidentifier
+import re
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 parser = argparse.ArgumentParser()
 parser.add_argument("--configurationFile", default="amatureguard.conf")
+parser.add_argument("--dataFile", default="amatureguard.dat")
+cmdSubparsers = parser.add_subparsers(dest='cmd')
+scanCmd = cmdSubparsers.add_parser('scan')
+scanCmd.add_argument("dirs", nargs="+", default=["."])
+obfuscateCmd = cmdSubparsers.add_parser('obfuscate')
+obfuscateCmd.add_argument("dirs", nargs="+", default=["."])
+obfuscateCmd.add_argument("--comment")
+obfuscateCmd.add_argument("--fixedMacroComment", action='store_true')
 args = parser.parse_args()
 
-KEYWORDS = [
-    'void', 'int', 'unsigned', 'char', 'double', 'float', 'long', 'bool', 'typedef',
-    'uint', 'uint8_t', 'int8_t', 'uint16_t', 'int16_t', 'uint32_t', 'int32_t', 'uint64_t', 'int64_t',
-    'time_t', 'size_t', 'ssize_t', 'offset_t',
-    'public', 'private', 'protected', 'class', 'template', 'typename', 'namespace', 'operator',
-    'override', 'virtual', 'static', 'inline', 'volatile', 'static_case', 'reinterpret_case', 'const_cast',
-    'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'default', 'return', 'break',
-    'nil', 'nullptr', 'this', 'sizeof', 'new', 'delete', 'enum', 'struct', 'class', 'auto',
-    'not', 'and', 'or', 'true', 'false',
-    'try', 'catch', 'throw',
-]
-CPP_KEEP = [
-    'std::unique_ptr', 'std::string',
-]
-C_KEEP = [
-    'tv_sec', 'tv_usec', 'malloc', 'free', 'main', 'errno',
-    'O_APPEND', 'O_CREAT', 'O_RDONLY', 'NULL',
-]
-OBJECTIVE_C_KEEP = [
-    'self', 'selector', 'YES', 'NO', 'BOOL', 'UTF8String', 'Byte', 'Bool',
-]
-OBJECTIVE_C_EXP = [r"UI[A-Z]", r"NS[A-Z]"]
-CUSTOM_KEEP = ["_Ti", "_Tn", ]
-KEEP = set(KEYWORDS + CPP_KEEP + C_KEEP + OBJECTIVE_C_KEEP + CUSTOM_KEEP)
 
-found = set()
-for filename in walk.allSourceCodeFiles("."):
-    tokens = codeprocessingtokens.Tokens.fromFile(filename)
+def annotateWithComments(afterObfuscation, filename, comment):
+    if not comment:
+        return afterObfuscation
+    newContents = afterObfuscation.split("\n")
+    with open(filename) as f:
+        oldContents = f.read().split("\n")
+    assert len(newContents) == len(oldContents), "new %d old %d %s" % (len(newContents), len(oldContents), filename)
+    for i in xrange(len(newContents)):
+        if newContents[i] != oldContents[i]:
+            newContents[i] = newContents[i] + " " + comment + oldContents[i].strip()
+    return "\n".join(newContents)
+
+
+def fixPreprocessorMacros(afterObfuscation, replaces):
+    tokens = codeprocessingtokens.Tokens.fromContents(afterObfuscation)
     for token in tokens:
-        if token.kind != codeprocessingtokens.KIND_IDENTIFIER:
+        if token.kind != codeprocessingtokens.KIND_DIRECTIVE:
             continue
-        spelling = token.spelling
-        if spelling in KEEP:
+        if not token.spelling.startswith("#define"):
             continue
-        if spelling.startswith("__"):
-            continue
-        if spelling.startswith('0') or spelling.isdigit():
-            continue
-        if len(spelling) > 1 and spelling[:-1].isdigit and spelling[-1] in ['u', 'f']:
-            continue
-        found.add(spelling)
+        directiveTokens = codeprocessingtokens.Tokens.fromContents(token.spelling, hashMode="special")
+        for directiveToken in replacableidentifiers.replacableIdentifiers(directiveTokens):
+            if directiveToken.kind != codeprocessingtokens.KIND_IDENTIFIER:
+                continue
+            if directiveToken.spelling in replaces:
+                directiveToken.spelling = meaninglessidentifier.meaninglessIdentifier(
+                    replaces[directiveToken.spelling])
+        spellingBefore = token.spelling
+        token.spelling = directiveTokens.joinSpellings()
+        if args.fixedMacroComment and spellingBefore != token.spelling:
+            token.spelling = token.spelling + '\n//' + '//'.join(spellingBefore.split('\n'))
+    return tokens.joinSpellings()
 
-import pprint
-pprint.pprint(found)
-print len(found)
+
+dataFile = datafile.DataFile(args.dataFile, dict(replaces={}))
+data = dataFile.data()
+if args.cmd == 'scan':
+    replaces = data['replaces']
+    nextAvailable = max([0] + list(replaces.values())) + 1
+    for filename in walk.allSourceCodeFiles(args.dirs):
+        tokens = codeprocessingtokens.Tokens.fromFile(filename)
+        for token in replacableidentifiers.replacableIdentifiers(tokens):
+            if token.spelling not in replaces:
+                replaces[token.spelling] = nextAvailable
+                logging.info("New identifier found '%(identifier)s':%(id)s", dict(
+                    identifier=token.spelling, id=nextAvailable))
+                nextAvailable += 1
+    data['replaces'] = replaces
+elif args.cmd == 'obfuscate':
+    found = {}
+    replaces = data['replaces']
+    nextAvailable = max([0] + list(replaces.values())) + 1
+    for filename in walk.allSourceCodeFiles(args.dirs):
+        tokens = codeprocessingtokens.Tokens.fromFile(filename)
+        for token in replacableidentifiers.replacableIdentifiers(tokens):
+            if token.spelling not in replaces:
+                raise Exception("Token '%s' missing from scan! %s:%d" % (
+                    token.spelling, token.filename, token.line))
+            token.spelling = meaninglessidentifier.meaninglessIdentifier(replaces[token.spelling])
+        newContents = tokens.joinSpellings()
+        newContents = annotateWithComments(newContents, filename, args.comment)
+        newContents = fixPreprocessorMacros(newContents, replaces)
+        with open(filename, "w") as f:
+            f.write(newContents)
+else:
+    raise Exception("Unknown command %s" % args.cmd)
+dataFile.saveIfChanged(data)
+
+
