@@ -8,6 +8,7 @@ from amatureguard import replacableidentifiers
 from amatureguard import datafile
 from amatureguard import meaninglessidentifier
 import re
+import tarfile
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 parser = argparse.ArgumentParser()
@@ -20,6 +21,7 @@ obfuscateCmd = cmdSubparsers.add_parser('obfuscate')
 obfuscateCmd.add_argument("dirs", nargs="+", default=["."])
 obfuscateCmd.add_argument("--comment")
 obfuscateCmd.add_argument("--fixedMacroComment", action='store_true')
+obfuscateCmd.add_argument("--restoreTar")
 args = parser.parse_args()
 
 
@@ -41,7 +43,7 @@ def fixPreprocessorMacros(afterObfuscation, replaces):
     for token in tokens:
         if token.kind != codeprocessingtokens.KIND_DIRECTIVE:
             continue
-        if not token.spelling.startswith("#define"):
+        if not token.spelling.startswith("#define") and not token.spelling.startswith("#undef"):
             continue
         directiveTokens = codeprocessingtokens.Tokens.fromContents(token.spelling, hashMode="special")
         for directiveToken in replacableidentifiers.replacableIdentifiers(directiveTokens):
@@ -53,7 +55,7 @@ def fixPreprocessorMacros(afterObfuscation, replaces):
         spellingBefore = token.spelling
         token.spelling = directiveTokens.joinSpellings()
         if args.fixedMacroComment and spellingBefore != token.spelling:
-            token.spelling = token.spelling + '\n//' + '//'.join(spellingBefore.split('\n'))
+            token.spelling = token.spelling + '\n//' + '\n//'.join([t.rstrip('\\') for t in spellingBefore.split('\n')])
     return tokens.joinSpellings()
 
 
@@ -75,6 +77,9 @@ elif args.cmd == 'obfuscate':
     found = {}
     replaces = data['replaces']
     nextAvailable = max([0] + list(replaces.values())) + 1
+    tar = None
+    if args.restoreTar:
+        tar = tarfile.open(args.restoreTar, "w")
     for filename in walk.allSourceCodeFiles(args.dirs):
         tokens = codeprocessingtokens.Tokens.fromFile(filename)
         for token in replacableidentifiers.replacableIdentifiers(tokens):
@@ -85,8 +90,12 @@ elif args.cmd == 'obfuscate':
         newContents = tokens.joinSpellings()
         newContents = annotateWithComments(newContents, filename, args.comment)
         newContents = fixPreprocessorMacros(newContents, replaces)
+        if tar is not None:
+            tar.add(filename)
         with open(filename, "w") as f:
             f.write(newContents)
+    if tar is not None:
+        tar.close()
 else:
     raise Exception("Unknown command %s" % args.cmd)
 dataFile.saveIfChanged(data)
