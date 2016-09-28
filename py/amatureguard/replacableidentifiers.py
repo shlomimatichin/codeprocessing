@@ -30,20 +30,25 @@ CPP_KEEP = [
 ]
 C_KEEP = [
     'timeval', 'tv_sec', 'tv_usec', 'gettimeofday', 'timezone',
-    'malloc', 'free', 'main', 'errno',
+    'malloc', 'free', 'main', 'errno', 'calloc', 'realloc',
     'st_birthtimespec', 'st_mode', 'st_size',
-    'memcpy', 'memmove', 'memcmp', 'memset', 'bzero',
+    'memcpy', 'memmove', 'memcmp', 'memset', 'bzero', 'memchr',
     'close', 'open', 'write', 'read', 'lseek', 'fseek', 'stat', 'fstat', 'unlink', 'rename',
     'rmdir', 'mkdir', 'dirent', 'd_name', 'opendir', 'readdir', 'closedir',
     'O_APPEND', 'O_CREAT', 'O_RDONLY', 'NULL',
     'isalnum',
-    'printf', 'scanf', 'sscanf',
+    'printf', 'scanf', 'sscanf', 'vsprintf', 'vsnprintf', 'snprintf',
     'getpid', 'getppid', 'pthread_mutex_t', 'pthread_self',
     'sigaction', 'siginfo_t', 'sa_sigaction', 'sa_flags', 'sa_handler',
     'va_list', 'va_start', 'va_end',
+    'strcmp', 'strcat', 'strlen', 'strcpy', 'strncpy',
+    'fopen', 'fclose', 'ftell', 'fseek', 'fread', 'fwrite', 'ferror',
 ]
 OBJECTIVE_C_KEEP = [
     'self', 'selector', 'YES', 'NO', 'BOOL', 'UTF8String', 'Byte', 'Bool', 'SEL',
+    'interface', 'implementation', 'IBOutlet', 'property', 'nullable', 'instancetype',
+    'synthesize',
+    'Class', 'readonly', 'copy', 'strong',
 ]
 CUSTOM_KEEP = [
     "_Ti", "_Tn", 'e',
@@ -86,6 +91,7 @@ MULTI_TOKEN_IGNORE_CPP = [
     ['boost', '::', None, '::', None],
     ['boost', '::', None],
     ['__attribute__', '(', '(', None, ')', ')'],
+    ['__attribute__', '(', '(', None, '(', None, ')', ')', ')'],
 ]
 MULTI_TOKEN_IGNORE_CUSTOM = [
     ['RAPIDJSON_DIAG_OFF', '(', None, None, None, ')'],

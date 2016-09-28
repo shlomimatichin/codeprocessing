@@ -95,6 +95,23 @@ class Tokens(list):
                 if len(stack) == 0:
                     return another
 
+    def findSemicolon(self, first, semicolon=';'):
+        if isinstance(first, Token):
+            assert self[first.index] is first
+        else:
+            first = self[first]
+        candidate = first.index
+        while candidate < len(self) and self[candidate].spelling != semicolon:
+            token = self[candidate]
+            if token.spelling in ["[", "(", "{"]:
+                candidate = self.closingParen(token).index
+            candidate += 1
+        if candidate == len(self):
+            raise Exception("Semicolon (%s) was not found, when looking from %s:%d" % (
+                semicolon, first.filename, first.line))
+        assert self[candidate].spelling == ';'
+        return self[candidate]
+
     def subList(self, first, lastOrCiel):
         offset = self[0].index
         if isinstance(lastOrCiel, Token):

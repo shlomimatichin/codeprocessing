@@ -2,7 +2,9 @@ import os
 
 
 def allSourceCodeFiles(directories, ignoreDirs=[], ignoreBasenames=[]):
-    CODE_EXTENSIONS = set([".h", ".H", ".hpp", ".HPP", ".hxx", ".HXX", ".cpp", ".CPP", ".cxx", ".CXX", ".m", ".mm"])
+    CODE_EXTENSIONS = set([
+        ".h", ".H", ".hpp", ".HPP", ".hxx", ".HXX",
+        ".cpp", ".CPP", ".cxx", ".CXX", ".m", ".mm", '.c', '.C'])
     result = set()
     for directory in directories:
         if os.path.isdir(directory):
