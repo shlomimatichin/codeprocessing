@@ -19,7 +19,8 @@ KEYWORDS = [
 CPP_KEEP = [
     'c_str', 'size', 'count', 'gcount', 'length', 'substr', 'rdbuf', 'str', 'append', 'emplace_back',
     'find', 'rfind', 'find_first_of', 'find_last_of',
-    'pop_front', 'front', 'push_front', 'data', 'clear', 'erase', 'resize', 'back', 'pop_back', 'push_back', 'insert',
+    'pop_front', 'front', 'push_front', 'data', 'clear',
+    'erase', 'resize', 'back', 'pop_back', 'push_back', 'insert', 'emplace', 'replace', 'get',
     'reset', 'release', 'pointer', 'reference', 'difference_type',
     'seekg', 'tellg', 'eof', 'tellp',
     'begin', 'end', 'rbegin', 'rend', 'beg',
@@ -50,6 +51,7 @@ OBJECTIVE_C_KEEP = [
     'interface', 'implementation', 'IBOutlet', 'property', 'nullable', 'instancetype',
     'synthesize', 'dynamic', 'atomic', 'synchronized', 'autoreleasepool',
     'Class', 'readonly', 'copy', 'strong', 'finally',
+    '__kindof', '_Nonnull', '_Nullable',
 ]
 CUSTOM_KEEP = [
     "_Ti", "_Tn", 'e',
