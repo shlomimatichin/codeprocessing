@@ -14,7 +14,7 @@ KEYWORDS = [
     'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'default', 'return', 'break', 'continue',
     'nil', 'null', 'nullptr', 'this', 'sizeof', 'new', 'delete', 'enum', 'union', 'struct', 'class', 'auto',
     'not', 'and', 'or', 'true', 'false',
-    'try', 'catch', 'throw',
+    'try', 'catch', 'throw', 'goto',
 ]
 CPP_KEEP = [
     'c_str', 'size', 'count', 'gcount', 'length', 'substr', 'rdbuf', 'str', 'append', 'emplace_back',
@@ -43,12 +43,13 @@ C_KEEP = [
     'va_list', 'va_start', 'va_end',
     'strcmp', 'strcat', 'strlen', 'strcpy', 'strncpy',
     'fopen', 'fclose', 'ftell', 'fseek', 'fread', 'fwrite', 'ferror',
+    'rand', 'srand', 'rand_r',
 ]
 OBJECTIVE_C_KEEP = [
     'self', 'selector', 'YES', 'NO', 'BOOL', 'UTF8String', 'Byte', 'Bool', 'SEL',
     'interface', 'implementation', 'IBOutlet', 'property', 'nullable', 'instancetype',
-    'synthesize',
-    'Class', 'readonly', 'copy', 'strong',
+    'synthesize', 'dynamic', 'atomic', 'synchronized', 'autoreleasepool',
+    'Class', 'readonly', 'copy', 'strong', 'finally',
 ]
 CUSTOM_KEEP = [
     "_Ti", "_Tn", 'e',

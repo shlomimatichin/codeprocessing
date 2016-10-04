@@ -14,7 +14,10 @@ _KNOWN_KINDS = set([
     KIND_WHITESPACE,
 ])
 _OPENS = {"{": "}", "(": ")", "[": "]"}
+_OPENS_TEMPLATE = dict(_OPENS)
+_OPENS_TEMPLATE["<"] = ">"
 _CLOSES = {y: x for x, y in _OPENS.iteritems()}
+_CLOSES_TEMPLATE = {y: x for x, y in _OPENS_TEMPLATE.iteritems()}
 
 
 class Token:
@@ -51,7 +54,7 @@ class Tokens(list):
 
     def findAllSpellings(self, spellings):
         for token in self.findAllSpelling(spellings[0]):
-            index = token.index
+            index = self.index(token)
             result = self.matchIgnoreWhitespaces(index, spellings)
             if result is not None:
                 yield result
@@ -80,31 +83,32 @@ class Tokens(list):
         raise Exception("Line %d not found in %s" % (
             number, getattr(self[0], 'filename', 'unknown filename')))
 
-    def closingParen(self, token):
-        offset = self[0].index
-        assert self[token.index - offset] is token
-        assert token.spelling in ["[", "(", "{"]
+    def closingParen(self, token, template=False):
         stack = [token]
-        for another in self[token.index + 1:]:
-            if another.spelling in _OPENS:
+        opens = _OPENS_TEMPLATE if template else _OPENS
+        closes = _CLOSES_TEMPLATE if template else _CLOSES
+        assert token.spelling in opens
+        for another in self[self.index(token) + 1:]:
+            if another.spelling in opens:
                 stack.append(another)
-            elif another.spelling in _CLOSES:
+            elif another.spelling in closes:
                 popped = stack.pop()
-                if popped.spelling != _CLOSES[another.spelling]:
+                if popped.spelling != closes[another.spelling]:
                     raise Exception("Incoherent parnethesis: opens %s closes %s" % (popped, another))
                 if len(stack) == 0:
                     return another
+        raise Exception("Incoherent parenthesis: no close for %s" % (token,))
 
     def findSemicolon(self, first, semicolon=';'):
         if isinstance(first, Token):
             assert self[first.index] is first
         else:
             first = self[first]
-        candidate = first.index
+        candidate = self.index(first)
         while candidate < len(self) and self[candidate].spelling != semicolon:
             token = self[candidate]
             if token.spelling in ["[", "(", "{"]:
-                candidate = self.closingParen(token).index
+                candidate = self.index(self.closingParen(token))
             candidate += 1
         if candidate == len(self):
             raise Exception("Semicolon (%s) was not found, when looking from %s:%d" % (
@@ -112,17 +116,20 @@ class Tokens(list):
         assert self[candidate].spelling == ';'
         return self[candidate]
 
+    def dropWhitespaces(self):
+        result = Tokens([t for t in self if t.kind != KIND_WHITESPACE])
+        if hasattr(self, 'filename'):
+            result.filename = self.filename
+        return result
+
     def subList(self, first, lastOrCiel):
-        offset = self[0].index
         if isinstance(lastOrCiel, Token):
-            assert self[lastOrCiel.index - offset] is lastOrCiel
-            ceil = lastOrCiel.index - offset + 1
+            ceil = self.index(lastOrCiel) + 1
         else:
             assert isinstance(lastOrCiel, int)
             ceil = lastOrCiel
         if isinstance(first, Token):
-            assert self[first.index - offset] is first
-            firstIndex = first.index - offset
+            firstIndex = self.index(first)
         else:
             assert isinstance(first, int)
             firstIndex = first
@@ -153,26 +160,26 @@ class Tokens(list):
         if isinstance(token, int):
             assert token < len(self)
             token = self[token]
-        assert self[token.index] is token
+        tokenIndex = self.index(token)
         what = self._toTokens(what, followingToken=token,
-                              preceedingToken=self[token.index - 1] if token.index > 0 else None)
+                              preceedingToken=self[tokenIndex - 1] if tokenIndex > 0 else None)
         for t in reversed(what):
-            self.insert(token.index, t)
-        self._fix(token.index)
+            self.insert(tokenIndex, t)
+        self._fix(tokenIndex)
 
     def replaceBetweenTokens(self, first, last, what):
         if isinstance(first, int):
             assert first < len(self)
             first = self[first]
-        assert self[first.index] is first
         if isinstance(last, int):
             assert last < len(self)
             last = self[last]
-        assert self[last.index] is last
-        assert first.index <= last.index
-        del self[first.index: last.index + 1]
-        self[first.index].index = first.index
-        self.insertBeforeToken(first.index, what)
+        firstIndex = self.index(first)
+        lastIndex = self.index(last)
+        assert firstIndex <= lastIndex
+        del self[firstIndex: lastIndex + 1]
+        self[firstIndex].index = firstIndex
+        self.insertBeforeToken(firstIndex, what)
 
     def _toTokens(self, what, preceedingToken, followingToken):
         if isinstance(what, str):
