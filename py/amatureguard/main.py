@@ -7,6 +7,7 @@ import codeprocessingtools
 from amatureguard import replacableidentifiers
 from amatureguard import datafile
 from amatureguard import meaninglessidentifier
+from amatureguard import directives
 import re
 import tarfile
 import pprint
@@ -137,16 +138,17 @@ if args.cmd == 'scan':
     nextAvailable = max([0] + list(replaces.values())) + 1
     for filename in walk.allSourceCodeFiles(args.dirs):
         tokens = codeprocessingtokens.Tokens.fromFile(filename)
-        for token in replacableidentifiers.replacableIdentifiers(tokens):
-            spelling = token.spelling
-            if args.assumeObjectiveCsetPrefix:
-                if SETTER.match(spelling) is not None:
-                    spelling = setterToProperty(spelling)
-            if spelling not in replaces:
-                replaces[spelling] = nextAvailable
-                logging.info("New identifier found '%(identifier)s':%(id)s", dict(
-                    identifier=spelling, id=nextAvailable))
-                nextAvailable += 1
+        with directives.fileDirectives(tokens):
+            for token in replacableidentifiers.replacableIdentifiers(tokens):
+                spelling = token.spelling
+                if args.assumeObjectiveCsetPrefix:
+                    if SETTER.match(spelling) is not None:
+                        spelling = setterToProperty(spelling)
+                if spelling not in replaces:
+                    replaces[spelling] = nextAvailable
+                    logging.info("New identifier found '%(identifier)s':%(id)s", dict(
+                        identifier=spelling, id=nextAvailable))
+                    nextAvailable += 1
     data['replaces'] = replaces
 elif args.cmd == 'obfuscate':
     found = {}
@@ -157,20 +159,21 @@ elif args.cmd == 'obfuscate':
         tar = tarfile.open(args.restoreTar, "w")
     for filename in walk.allSourceCodeFiles(args.dirs):
         tokens = codeprocessingtokens.Tokens.fromFile(filename)
-        for token in replacableidentifiers.replacableIdentifiers(tokens):
-            spelling = token.spelling
-            if args.keepObjectiveCsetPrefix and SETTER.match(spelling) is not None:
-                property = setterToProperty(spelling)
-                if property not in replaces:
-                    raise Exception("Token '%s' (property '%s') missing from scan! %s:%d" % (
-                        spelling, property, token.filename, token.line))
-                identifier = meaninglessidentifier.meaninglessIdentifier(property, replaces[property])
-                token.spelling = "set" + identifier[0].upper() + identifier[1:]
-            else:
-                if spelling not in replaces:
-                    raise Exception("Token '%s' missing from scan! %s:%d" % (
-                        spelling, token.filename, token.line))
-                token.spelling = meaninglessidentifier.meaninglessIdentifier(spelling, replaces[spelling])
+        with directives.fileDirectives(tokens):
+            for token in replacableidentifiers.replacableIdentifiers(tokens):
+                spelling = token.spelling
+                if args.keepObjectiveCsetPrefix and SETTER.match(spelling) is not None:
+                    property = setterToProperty(spelling)
+                    if property not in replaces:
+                        raise Exception("Token '%s' (property '%s') missing from scan! %s:%d" % (
+                            spelling, property, token.filename, token.line))
+                    identifier = meaninglessidentifier.meaninglessIdentifier(property, replaces[property])
+                    token.spelling = "set" + identifier[0].upper() + identifier[1:]
+                else:
+                    if spelling not in replaces:
+                        raise Exception("Token '%s' missing from scan! %s:%d" % (
+                            spelling, token.filename, token.line))
+                    token.spelling = meaninglessidentifier.meaninglessIdentifier(spelling, replaces[spelling])
         newContents = tokens.joinSpellings()
         newContents = annotateWithComments(newContents, filename, args.comment)
         newContents = fixPreprocessorMacros(newContents, replaces)
