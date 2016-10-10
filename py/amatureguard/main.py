@@ -27,6 +27,9 @@ obfuscateCmd.add_argument("--fixedMacroComment", action='store_true')
 obfuscateCmd.add_argument("--restoreTar")
 obfuscateCmd.add_argument("--keepObjectiveCinitPrefix", action='store_true')
 obfuscateCmd.add_argument("--keepObjectiveCsetPrefix", action='store_true')
+obfuscateCmd = cmdSubparsers.add_parser('obfuscateRegex')
+obfuscateCmd.add_argument("dirs", nargs="+", default=["."])
+obfuscateCmd.add_argument("--regex", nargs="+", required=True)
 createConfigCmd = cmdSubparsers.add_parser('createConfig')
 createConfigCmd.add_argument("dirs", nargs="+")
 createConfigCmd.add_argument("--match", nargs="+", default=[".."])
@@ -118,6 +121,16 @@ def allProperties(tokens):
             raise
 
 
+def replaceASingleRegex(contents, replaces, regexes):
+    for regex in regexes:
+        for match in re.finditer(regex, contents):
+            candidate = match.group(0)
+            if candidate in replaces:
+                identifier = meaninglessidentifier.meaninglessIdentifier(candidate, replaces[candidate])
+                return contents[:match.start()] + identifier + contents[match.end():]
+    return contents
+
+
 SETTER = re.compile("set[A-Z]")
 
 
@@ -151,9 +164,7 @@ if args.cmd == 'scan':
                     nextAvailable += 1
     data['replaces'] = replaces
 elif args.cmd == 'obfuscate':
-    found = {}
     replaces = data['replaces']
-    nextAvailable = max([0] + list(replaces.values())) + 1
     tar = None
     if args.restoreTar:
         tar = tarfile.open(args.restoreTar, "w")
@@ -183,6 +194,17 @@ elif args.cmd == 'obfuscate':
             f.write(newContents)
     if tar is not None:
         tar.close()
+elif args.cmd == 'obfuscateRegex':
+    replaces = data['replaces']
+    for filename in walk.allSourceCodeFiles(args.dirs):
+        with open(filename) as f:
+            contents = f.read()
+        contentsBefore = ""
+        while contents != contentsBefore:
+            contentsBefore = contents
+            contents = replaceASingleRegex(contentsBefore, replaces, args.regex)
+        with open(filename, "w") as f:
+            f.write(contents)
 elif args.cmd == 'createConfig':
     matchers = [re.compile(m) for m in args.match]
     mustNotMatchers = [re.compile(m) for m in args.mustNotMatch]
