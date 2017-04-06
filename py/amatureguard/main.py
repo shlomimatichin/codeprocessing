@@ -8,6 +8,7 @@ from amatureguard import replacableidentifiers
 from amatureguard import datafile
 from amatureguard import meaninglessidentifier
 from amatureguard import directives
+from amatureguard import objectivec
 import re
 import tarfile
 import pprint
@@ -85,42 +86,6 @@ def tokenMatches(token, matchers, mustNotMatchers):
     return False
 
 
-def allProperties(tokens):
-    for match in tokens.findAllSpellings(["@", "property"]):
-        semicolon = tokens.findSemicolon(match[0])
-        declaration = tokens.subList(match[0], semicolon)
-        spellings = [t.spelling for t in declaration]
-        if 'readonly' in spellings:
-            continue
-        assert 'setter' not in spellings, "Not implemented"
-        theRest = declaration.dropWhitespaces()
-        assert theRest[0].spelling == "@"
-        assert theRest[1].spelling == "property"
-        del theRest[:2]
-        for token in list(theRest):
-            if token.kind == codeprocessingtokens.KIND_C_COMMENT:
-                theRest.remove(token)
-            elif token.spelling in ["__kindof", '_Nonnull', '_Nullable']:
-                theRest.remove(token)
-        for multiMatch in theRest.findAllSpellings(["__attribute__", "(", "(", None, ")", ")"]):
-            del theRest[theRest.index(multiMatch[0]): theRest.index(multiMatch[-1]) + 1]
-        try:
-            if theRest[0].spelling == "(":
-                closing = theRest.closingParen(theRest[0])
-                del theRest[: theRest.index(closing) + 1]
-            assert theRest[0].kind == codeprocessingtokens.KIND_IDENTIFIER, "%s: %s" % (declaration, theRest[0])
-            theRest.pop(0)
-            if theRest[0].spelling == "<":
-                closing = theRest.closingParen(theRest[0], template=True)
-                del theRest[: theRest.index(closing) + 1]
-            while theRest[0].kind == codeprocessingtokens.KIND_SPECIAL:
-                theRest.pop(0)
-            yield theRest[0].spelling
-        except:
-            print "While parsing property at %s:%d" % (match[0].filename, match[0].line)
-            raise
-
-
 def replaceASingleRegex(contents, replaces, regexes):
     for regex in regexes:
         for match in re.finditer(regex, contents):
@@ -129,14 +94,6 @@ def replaceASingleRegex(contents, replaces, regexes):
                 identifier = meaninglessidentifier.meaninglessIdentifier(candidate, replaces[candidate])
                 return contents[:match.start()] + identifier + contents[match.end():]
     return contents
-
-
-SETTER = re.compile("set[A-Z]")
-
-
-def setterToProperty(spelling):
-    assert SETTER.match(spelling) is not None
-    return spelling[3].lower() + spelling[4:]
 
 
 if hasattr(args, 'keepObjectiveCinitPrefix') and args.keepObjectiveCinitPrefix:
@@ -156,7 +113,7 @@ if args.cmd == 'scan':
                 spelling = token.spelling
                 if args.assumeObjectiveCsetPrefix:
                     if SETTER.match(spelling) is not None:
-                        spelling = setterToProperty(spelling)
+                        spelling = objectivec.ObjectiveC.setterToProperty(spelling)
                 if spelling not in replaces:
                     replaces[spelling] = nextAvailable
                     logging.info("New identifier found '%(identifier)s':%(id)s", dict(
@@ -168,23 +125,34 @@ elif args.cmd == 'obfuscate':
     tar = None
     if args.restoreTar:
         tar = tarfile.open(args.restoreTar, "w")
+
+    def obfuscateNormally(token):
+        spelling = token.spelling
+        if spelling not in replaces:
+            raise Exception("Token '%s' missing from scan! %s:%d" % (
+                spelling, token.filename, token.line))
+        token.spelling = meaninglessidentifier.meaninglessIdentifier(spelling, replaces[spelling])
+        return True
+
+    obfuscators = [obfuscateNormally]
+    scanners = []
+    if args.keepObjectiveCinitPrefix:
+        objectiveC = objectivec.ObjectiveC(replaces)
+        obfuscators = [objectiveC.obfuscate] + obfuscators
+        scanners.append(objectiveC.scan)
+    if len(scanners) > 0:
+        for filename in walk.allSourceCodeFiles(args.dirs):
+            tokens = codeprocessingtokens.Tokens.fromFile(filename)
+            with directives.fileDirectives(tokens):
+                for scanner in scanners:
+                    scanner(tokens)
     for filename in walk.allSourceCodeFiles(args.dirs):
         tokens = codeprocessingtokens.Tokens.fromFile(filename)
         with directives.fileDirectives(tokens):
             for token in replacableidentifiers.replacableIdentifiers(tokens):
-                spelling = token.spelling
-                if args.keepObjectiveCsetPrefix and SETTER.match(spelling) is not None:
-                    property = setterToProperty(spelling)
-                    if property not in replaces:
-                        raise Exception("Token '%s' (property '%s') missing from scan! %s:%d" % (
-                            spelling, property, token.filename, token.line))
-                    identifier = meaninglessidentifier.meaninglessIdentifier(property, replaces[property])
-                    token.spelling = "set" + identifier[0].upper() + identifier[1:]
-                else:
-                    if spelling not in replaces:
-                        raise Exception("Token '%s' missing from scan! %s:%d" % (
-                            spelling, token.filename, token.line))
-                    token.spelling = meaninglessidentifier.meaninglessIdentifier(spelling, replaces[spelling])
+                for obfuscator in obfuscators:
+                    if obfuscator(token):
+                        break
         newContents = tokens.joinSpellings()
         newContents = annotateWithComments(newContents, filename, args.comment)
         newContents = fixPreprocessorMacros(newContents, replaces)
@@ -216,7 +184,7 @@ elif args.cmd == 'createConfig':
             if tokenMatches(token.spelling, matchers, mustNotMatchers):
                 found.add(token.spelling)
         if args.guessObjectiveCSetters:
-            for property in allProperties(tokens):
+            for property in objectivec.ObjectiveC.allProperties(tokens):
                 found.add("set" + property[0].upper() + property[1:])
     with open(args.output, "w") as f:
         f.write('replacableidentifiers.KEEP = replacableidentifiers.KEEP.union(\n')

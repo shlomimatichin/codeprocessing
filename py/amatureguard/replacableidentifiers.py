@@ -120,6 +120,20 @@ def _matchesExpression(spelling):
     return False
 
 
+def replacableSpelling(spelling):
+    if len(spelling) == 1:
+        return False
+    if spelling in KEEP:
+        return False
+    if spelling.startswith("__"):
+        return False
+    if spelling[0].isdigit():
+        return False
+    if _matchesExpression(spelling):
+        return False
+    return True
+
+
 def replacableIdentifiers(tokens):
     i = 0
     while i < len(tokens):
@@ -131,15 +145,6 @@ def replacableIdentifiers(tokens):
         i += 1
         if token.kind != codeprocessingtokens.KIND_IDENTIFIER:
             continue
-        spelling = token.spelling
-        if len(spelling) == 1:
-            continue
-        if spelling in KEEP:
-            continue
-        if spelling.startswith("__"):
-            continue
-        if spelling[0].isdigit():
-            continue
-        if _matchesExpression(spelling):
+        if not replacableSpelling(token.spelling):
             continue
         yield token
