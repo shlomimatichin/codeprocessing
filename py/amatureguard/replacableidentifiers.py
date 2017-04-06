@@ -19,8 +19,8 @@ KEYWORDS = [
 CPP_KEEP = [
     'c_str', 'size', 'count', 'gcount', 'length', 'substr', 'rdbuf', 'str', 'append', 'emplace_back',
     'find', 'rfind', 'find_first_of', 'find_last_of',
-    'pop_front', 'front', 'push_front', 'data', 'clear',
-    'erase', 'resize', 'back', 'pop_back', 'push_back', 'insert', 'emplace', 'replace', 'get', 'swap',
+    'pop_front', 'front', 'push_front', 'data', 'clear', 'swap',
+    'erase', 'resize', 'back', 'pop_back', 'push_back', 'insert', 'emplace', 'replace', 'get',
     'reset', 'release', 'pointer', 'reference', 'difference_type',
     'seekg', 'tellg', 'eof', 'tellp',
     'begin', 'end', 'rbegin', 'rend', 'beg',
@@ -34,7 +34,8 @@ C_KEEP = [
     'malloc', 'free', 'main', 'errno', 'calloc', 'realloc',
     'st_birthtimespec', 'st_mode', 'st_size',
     'memcpy', 'memmove', 'memcmp', 'memset', 'bzero', 'memchr',
-    'close', 'open', 'write', 'read', 'lseek', 'fseek', 'stat', 'fstat', 'unlink', 'rename',
+    'close', 'open', 'write', 'read', 'lseek', 'fseek', 'stat', 'fstat', 'statvfs', 'unlink', 'rename',
+    'f_frsize', 'f_bavail',
     'rmdir', 'mkdir', 'dirent', 'd_name', 'opendir', 'readdir', 'closedir',
     'O_APPEND', 'O_CREAT', 'O_RDONLY', 'NULL',
     'isalnum',
@@ -45,7 +46,7 @@ C_KEEP = [
     'va_list', 'va_start', 'va_end',
     'strcmp', 'strcat', 'strlen', 'strcpy', 'strncpy',
     'fopen', 'fclose', 'ftell', 'fseek', 'fread', 'fwrite', 'ferror',
-    'rand', 'srand', 'rand_r',
+    'rand', 'srand', 'rand_r', 'powf',
 ]
 OBJECTIVE_C_KEEP = [
     'self', 'selector', 'YES', 'NO', 'BOOL', 'UTF8String', 'Byte', 'Bool', 'SEL',
