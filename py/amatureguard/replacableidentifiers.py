@@ -46,7 +46,8 @@ C_KEEP = [
     'va_list', 'va_start', 'va_end',
     'strcmp', 'strcat', 'strlen', 'strcpy', 'strncpy',
     'fopen', 'fclose', 'ftell', 'fseek', 'fread', 'fwrite', 'ferror',
-    'rand', 'srand', 'rand_r', 'powf',
+    'rand', 'srand', 'rand_r', 'powf', 'round', 'isnan',
+    'setxattr', 'removexattr',
 ]
 OBJECTIVE_C_KEEP = [
     'self', 'selector', 'YES', 'NO', 'BOOL', 'UTF8String', 'Byte', 'Bool', 'SEL',
