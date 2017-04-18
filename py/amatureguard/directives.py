@@ -33,7 +33,7 @@ def fileDirectives(tokens):
                 if identifier.spelling != ';':
                     raise Exception("amature guard 'keep' directive not terminated at %s:%d" % (
                         token.filename, token.line))
-                logging.info("amature guard directive keep at %(filename)s:%(line)d: will keep %(keep)s", dict(
+                logging.info("amature guard directive keep at %(filename)s/%(line)d. will keep %(keep)s", dict(
                     filename=token.filename, line=token.line, keep=keeping))
             else:
                 raise Exception("Unknown amature guard directive '%s' in %s:%d" % (
