@@ -112,7 +112,7 @@ if args.cmd == 'scan':
             for token in replacableidentifiers.replacableIdentifiers(tokens):
                 spelling = token.spelling
                 if args.assumeObjectiveCsetPrefix:
-                    if SETTER.match(spelling) is not None:
+                    if objectivec.SETTER.match(spelling) is not None:
                         spelling = objectivec.ObjectiveC.setterToProperty(spelling)
                 if spelling not in replaces:
                     replaces[spelling] = nextAvailable
