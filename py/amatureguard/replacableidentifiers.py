@@ -96,6 +96,8 @@ MULTI_TOKEN_IGNORE_CPP = [
     ['boost', '::', None, '::', None, '::', None],
     ['boost', '::', None, '::', None],
     ['boost', '::', None],
+    ['c', '+', '+', '98', '-', None],
+    ['old', '-', 'style', '-', 'cast'],
     ['__attribute__', '(', '(', None, ')', ')'],
     ['__attribute__', '(', '(', None, '(', None, ')', ')', ')'],
 ]
