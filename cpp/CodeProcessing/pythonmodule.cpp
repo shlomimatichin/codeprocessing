@@ -62,12 +62,25 @@ static PyMethodDef codeprocessingnativeMethods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
+static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT,
+    "codeprocessingnative",
+    NULL,
+    0,
+    codeprocessingnativeMethods,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
 PyMODINIT_FUNC
-initcodeprocessingnative(void)
+PyInit_codeprocessingnative(void)
 {
     PyObject *m;
 
-    m = Py_InitModule("codeprocessingnative", codeprocessingnativeMethods);
+    m = PyModule_Create(&moduledef);
     if (m == NULL)
-        return;
+        return m;
+    return m;
 }

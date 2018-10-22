@@ -16,8 +16,8 @@ _KNOWN_KINDS = set([
 _OPENS = {"{": "}", "(": ")", "[": "]"}
 _OPENS_TEMPLATE = dict(_OPENS)
 _OPENS_TEMPLATE["<"] = ">"
-_CLOSES = {y: x for x, y in _OPENS.iteritems()}
-_CLOSES_TEMPLATE = {y: x for x, y in _OPENS_TEMPLATE.iteritems()}
+_CLOSES = {y: x for x, y in _OPENS.items()}
+_CLOSES_TEMPLATE = {y: x for x, y in _OPENS_TEMPLATE.items()}
 
 
 class Token:

@@ -20,4 +20,4 @@ for filename in args.filename:
         with open(filename, "w") as f:
             f.write(tokens.joinSpellings())
     else:
-        print tokens.joinSpellings()
+        print(tokens.joinSpellings())
